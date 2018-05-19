@@ -1,0 +1,148 @@
+<!DocType html>
+<html>
+  <head>
+    <meta http-equiv=Content-Type content="text/html;charset=utf-8">
+    <meta http-equiv=X-UA-Compatible content="IE=edge,chrome=1">
+    <meta content=always name=referrer>
+  </head>
+  <body>
+    <script type="text/javascript" src="api.js"></script>
+    <script>
+      console.log('取消对方法的注释即可...')
+      const api = new Api()
+      
+      // -----------------------> Promise 的创建与使用
+      function creat_promise () {
+        return new Promise((resolve, reject) => {
+          resolve(42)
+        })
+      }
+      function use_promise () {
+        const a_promise = creat_promise()
+        a_promise.then(res => console.log(res))
+      }
+      // use_promise()
+
+      // -----------------------> Promise 的链式顺序模式
+      function promise_chain () {
+        api.getUserById(1)
+          .then(res => {
+            console.log(res)
+            return api.getUserName(res)
+          })
+          .then(res => {
+            console.log(res)
+            return api.getFatherByChildName(res)
+          })
+          .then(res => console.log(res))
+      }
+      // promise_chain()
+
+      // -----------------------> Promise 的catch的坑(始终无法捕捉最后一个catch的内部错误)
+      function promise_lastErro () {
+        api.throw_Error()
+        .then(res => console.log('没有错'))
+        .catch(err => {
+          console.log(err)
+          foo.bar()
+        })
+        console.log('无法捕捉最后一个catch的错误：foo.bar()')
+      }
+      // promise_lastErro()
+
+      // -----------------------> Promise 的并发/并行
+      function promise_concurrent_1 () {
+        const p1 = api.getUserById(1,Math.random() * 1000, () => { console.log('p1执行完毕') })
+        const p2 = api.getUserById(1,Math.random() * 1000, () => { console.log('p2执行完毕') })
+        Promise.all([p1, p2])
+          .then(res => console.log('p1 p2 都执行完毕'))
+      }
+      // promise_concurrent_1()
+
+      // -----------------------> Promise 的任务竞争：竞态(第一优先)
+      function promise_compete () {
+        const p1 = api.getUserById(1, 2000)
+        const p2 = api.getUserById(2)
+        Promise.race([p1, p2]).then(res => console.log(res))
+      }
+      // promise_compete()
+
+      // 使用Async/Await代替链式promise(类比 ---> Promise的链式顺序模式)
+      async function async_Request () {
+        console.log('请稍等..此时是三个setTimeOut，每个1s，需要等待3s')
+        const user = await api.getUserById(1)
+        const userName = await api.getUserName(user)
+        const father = await api.getFatherByChildName(userName)
+        console.log(father)
+      }
+      // async_Request()
+
+      // 使用Async/Await的并发与并行
+      async function async_Concurrent () {
+        const users = await api.getUsersByGrade(1)
+        const usersPromise = users.map(item => api.getUserName(item, Math.random() * 1000))
+        Promise.all(usersPromise).then(res => {
+          console.log(res)
+        })
+      }
+      // async_Concurrent()
+
+      // 使用Async/Await的错误捕捉
+      async function async_CatchErro () {
+        try {
+          await api.throw_Error()
+          console.log('未捕捉到错误？')
+        } catch (error) {
+          console.log(error)
+        }
+      }
+      // async_CatchErro()
+
+      // Async/Await函数的互相调用（非常nice且优雅的方式）
+      async function async_A () {
+        const user = await api.getUserById(2)
+        const userName = await api.getUserName(user)
+        const father = await api.getFatherByChildName(userName)
+        return { user, userName, father }
+      }
+      async function async_B () {
+        console.log('数据获取中...')
+        const { user, userName, father } = await async_A()
+        console.log('userInfo',{ user, userName, father })
+      }
+      // async_B()
+
+      // Async/Await检索十条数据,串行
+      async function async_ten_serial (length = 10) {
+        try {
+          const users = []
+          console.log('串行请求10条数据，每条1秒，请稍等10秒钟....')
+          while(users.length < 10) {
+            users.push(await api.getUserById(1))
+          }
+          console.log(users)
+        } catch (error) {
+          console.log(error)
+        }
+      }
+      // async_ten_serial()
+
+      // Async/Await检索十条数据,并行
+      async function async_ten_parallel (length = 10) {
+        try {
+          const usersPromise = []
+          console.log('并行请求10条数据，每条1秒，请稍等1秒钟....')
+          while(usersPromise.length < 10) {
+            usersPromise.push(api.getUserById(2))
+          }
+          const users = await Promise.all(usersPromise)
+          console.log(users)
+        } catch (error) {
+          console.log(error)
+        }
+      }
+      // async_ten_parallel()
+
+    </script>
+  </body>
+</html>
